@@ -319,7 +319,7 @@ def main():
             download_audio(args.url)
         download_video(args.url)
 
-    if args.playlist and args.url:
+    if args.playlist:
         print("ok playlist\n\n\n\n\n")
         if args.audio:
             download_playlist_audio(args.url)
