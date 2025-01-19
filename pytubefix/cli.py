@@ -315,15 +315,16 @@ def main():
     args = parser.parse_args()
 
     if args.url:
+        print("url ok\n\n\n\n\n")
         if args.audio:
             download_audio(args.url)
         download_video(args.url)
 
-    if args.playlist:
-        print("ok playlist\n\n\n\n\n")
-        if args.audio:
-            download_playlist_audio(args.url)
-        download_video(args.url)
+        if args.playlist:
+            print("ok playlist\n\n\n\n\n")
+            if args.audio:
+                download_playlist_audio(args.url)
+            download_video(args.url)
 
 
 if __name__ == "__main__":
