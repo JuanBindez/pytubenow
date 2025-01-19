@@ -326,13 +326,5 @@ def main():
         download_video(args.url)
 
 
-
-    if args.c:
-        pass
-
-    if args.lc:
-        pass
-
-
 if __name__ == "__main__":
     main()
