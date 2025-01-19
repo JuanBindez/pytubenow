@@ -18,7 +18,7 @@ from pytubefix import YouTube
 
 logger = logging.getLogger(__name__)
 
-def build_playback_report(youtube: YouTube) -> None:
+def build_playback_report(url) -> None:
     """Serialize the request data to json for offline debugging.
     
     :param YouTube youtube:
@@ -110,7 +110,7 @@ def _unique_name(base: str, subtype: str, media_type: str, target: str) -> str:
             return file_name
         counter += 1
 
-def ffmpeg_process(youtube: YouTube, resolution: str, target: Optional[str] = None) -> None:
+def ffmpeg_process(url, resolution: str, target: Optional[str] = None) -> None:
     """
     Decides the correct video stream to download, then calls _ffmpeg_downloader.
 
@@ -159,7 +159,7 @@ def ffmpeg_process(youtube: YouTube, resolution: str, target: Optional[str] = No
     # Execute the command
     subprocess.run(command)
 
-def download_by_resolution(youtube: YouTube, resolution: str, target: Optional[str] = None) -> None:
+def download_by_resolution(url, resolution: str, target: Optional[str] = None) -> None:
     """Download a stream by the specified resolution.
 
     :param YouTube youtube:
@@ -176,7 +176,7 @@ def download_by_resolution(youtube: YouTube, resolution: str, target: Optional[s
     else:
         _download(stream, target)
 
-def download_audio(youtube: YouTube, filetype: Optional[str] = "mp4", target: Optional[str] = None) -> None:
+def download_audio(url, filetype: Optional[str] = "mp4", target: Optional[str] = None) -> None:
     """Download audio stream of a YouTube video.
 
     :param YouTube youtube:
@@ -193,7 +193,7 @@ def download_audio(youtube: YouTube, filetype: Optional[str] = "mp4", target: Op
     else:
         _download(stream, target)
 
-def download_highest_resolution_progressive(youtube: YouTube, resolution: str, target: Optional[str] = None) -> None:
+def download_highest_resolution_progressive(url, resolution: str, target: Optional[str] = None) -> None:
     """Download a YouTube video stream at the highest resolution.
 
     :param YouTube youtube:
@@ -210,7 +210,7 @@ def download_highest_resolution_progressive(youtube: YouTube, resolution: str, t
     else:
         _download(stream, target)
 
-def download_by_itag(youtube: YouTube, itag: int, target: Optional[str] = None) -> None:
+def download_by_itag(url, itag: int, target: Optional[str] = None) -> None:
     """Download a YouTube stream by its itag.
 
     :param YouTube youtube:
@@ -227,7 +227,7 @@ def download_by_itag(youtube: YouTube, itag: int, target: Optional[str] = None) 
         print(f"Downloading stream with itag {itag}...")
         _download(stream, target)
 
-def download_caption(youtube: YouTube, lang_code: str, target: Optional[str] = None) -> None:
+def download_caption(url, lang_code: str, target: Optional[str] = None) -> None:
     """Download captions for a given YouTube video.
 
     :param YouTube youtube:
@@ -254,7 +254,7 @@ def _print_available_captions(captions: List[CaptionQuery]) -> None:
     for caption in captions:
         print(f" - {caption.language_code}: {caption.name}")
 
-def display_streams(youtube: YouTube) -> None:
+def display_streams(url) -> None:
     """Display available streams for the given YouTube video.
 
     :param YouTube youtube:
@@ -283,73 +283,9 @@ def _parse_args(parser: argparse.ArgumentParser, args: Optional[List] = None) ->
 
     return parser.parse_args(args)
 
-def _perform_args_on_youtube(youtube: YouTube, args: argparse.Namespace) -> None:
-    if len(sys.argv) == 2:
-        download_highest_resolution_progressive(youtube=youtube, resolution="highest", target=args.target)
-
-    if args.list_captions:
-        _print_available_captions(youtube.captions)
-    if args.list:
-        display_streams(youtube)
-
-    if args.itag:
-        download_by_itag(youtube=youtube, itag=args.itag, target=args.target)
-    elif args.caption_code:
-        download_caption(youtube=youtube, lang_code=args.caption_code, target=args.target)
-    elif args.resolution:
-        download_by_resolution(youtube=youtube, resolution=args.resolution, target=args.target)
-    elif args.audio:
-        download_audio(youtube=youtube, filetype=args.audio, target=args.target)
-    
-    if args.ffmpeg:
-        ffmpeg_process(youtube=youtube, resolution=args.resolution, target=args.target)
-
-    if args.build_playback_report:
-        build_playback_report(youtube)
-
-    oauth = False
-    cache = False
-
-    if args.oauth:
-        oauth = True
-        cache = True
-
-        print("Loading video...")
-        youtube = YouTube(args.url, use_oauth=oauth, allow_oauth_cache=cache)
-
-        download_highest_resolution_progressive(youtube=youtube, resolution="highest", target=args.target)
-
 
 def main():
-    parser = argparse.ArgumentParser(description=main.__doc__)
-    args = _parse_args(parser)
-
-    log_filename = args.logfile if args.verbose else None
-    setup_logger(logging.DEBUG if args.verbose else logging.INFO, log_filename=log_filename)
-
-    if args.verbose:
-        logger.debug(f'Pytubefix version: {__version__}')
-
-    if not args.url or "youtu" not in args.url:
-        parser.print_help()
-        sys.exit(0)
-
-    if "/playlist" in args.url:
-        print("Loading playlist...")
-        playlist = Playlist(args.url)
-        args.target = args.target or safe_filename(playlist.title)
-
-        for youtube_video in playlist.videos:
-            try:
-                _perform_args_on_youtube(youtube_video, args)
-            except exceptions.PytubeFixError as e:
-                print(f"There was an error with video: {youtube_video}")
-                print(e)
-
-    else:
-        print("Loading video...")
-        youtube = YouTube(args.url)
-        _perform_args_on_youtube(youtube, args)
+    pass
 
 if __name__ == "__main__":
     main()
