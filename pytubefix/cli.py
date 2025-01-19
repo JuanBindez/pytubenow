@@ -286,7 +286,7 @@ def main():
 
     parser.add_argument("-u","--url", required=True, help="The YouTube /watch or /playlist url", nargs="?")
     parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
-    parser.add_argument("--itag", type=int, required=True, help="The itag for the desired stream")
+    parser.add_argument("--itag", type=int, help="The itag for the desired stream")
     parser.add_argument("-r", "--resolution", type=str, help="The resolution for the desired stream")
     parser.add_argument("-l", "--list", action="store_true", help="The list option causes pytubefix cli to return a list of streams available to download")
     parser.add_argument("--oauth", action="store_true", help="use oauth token")
