@@ -280,6 +280,18 @@ def download_audio(url):
     ys = yt.streams.get_audio_only()
     ys.download()
 
+def download_playlist_video(url):
+    pl = Playlist(url)
+    for video in pl.videos:
+        ys = video.streams.get_highest_resolution()
+        ys.download()
+
+def download_playlist_audio(url):
+    pl = Playlist(url)
+    for video in pl.videos:
+        ys = video.streams.get_audio_only()
+        ys.download()
+
 
 def main():
     parser = argparse.ArgumentParser(description=main.__doc__)
@@ -288,6 +300,7 @@ def main():
     parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--itag", type=int, help="The itag for the desired stream")
     parser.add_argument("-r", "--resolution", type=str, help="The resolution for the desired stream")
+    parser.add_argument("-pl", "--playlist", help="download playlist", nargs="?")
     parser.add_argument("-l", "--list", action="store_true", help="The list option causes pytubefix cli to return a list of streams available to download")
     parser.add_argument("--oauth", action="store_true", help="use oauth token")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", help="Set logger output to verbose output.")
@@ -305,6 +318,14 @@ def main():
         if args.audio:
             download_audio(args.url)
         download_video(args.url)
+
+    if args.playlist and args.url:
+        print("ok playlist\n\n\n\n\n")
+        if args.audio:
+            download_playlist_audio(args.url)
+        download_video(args.url)
+
+
 
     if args.c:
         pass
