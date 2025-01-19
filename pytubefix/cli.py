@@ -284,7 +284,7 @@ def download_audio(url):
 def main():
     parser = argparse.ArgumentParser(description=main.__doc__)
 
-    parser.add_argument("-u","--url", required=True, help="The YouTube /watch or /playlist url", nargs="?")
+    parser.add_argument("-u", "--url", help="The YouTube /watch or /playlist url", nargs="?")
     parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--itag", type=int, help="The itag for the desired stream")
     parser.add_argument("-r", "--resolution", type=str, help="The resolution for the desired stream")
@@ -301,10 +301,10 @@ def main():
 
     args = parser.parse_args()
 
-    if args.u:
-        if args.a:
-            download_audio(args.u)
-        download_video(args.u)
+    if args.url:
+        if args.audio:
+            download_audio(args.url)
+        download_video(args.url)
 
     if args.c:
         pass
