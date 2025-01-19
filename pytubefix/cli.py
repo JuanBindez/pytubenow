@@ -296,7 +296,7 @@ def main():
     parser.add_argument("-c", "--caption-code", type=str, help="Download srt captions for given language code. Prints available language codes if no argument given")
     parser.add_argument('-lc', '--list-captions', action='store_true', help="List available caption codes for a video")
     #parser.add_argument("-t", "--target", help="The output directory for the downloaded stream. Default is current working directory")
-    parser.add_argument("-a", "--audio", action="store_true", nargs="?", help="Download the audio for a given URL at the highest bitrate available. Defaults to mp4 format if none is specified")
+    parser.add_argument("-a", "--audio", action="store_true", help="Download the audio for a given URL at the highest bitrate available. Defaults to mp4 format if none is specified")
     parser.add_argument("-f", "--ffmpeg", const="best", nargs="?", help="Downloads the audio and video stream for resolution provided. If no resolution is provided, downloads the best resolution. Runs the command line program ffmpeg to combine the audio and video")
 
     args = parser.parse_args()
