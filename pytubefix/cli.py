@@ -13,7 +13,6 @@ from typing import List, Optional
 import pytubefix.exceptions as exceptions
 from pytubefix import __version__
 from pytubefix import CaptionQuery, Playlist, Stream
-from pytubefix.helpers import safe_filename, setup_logger
 from pytubefix import YouTube
 
 logger = logging.getLogger(__name__)
@@ -21,21 +20,23 @@ logger = logging.getLogger(__name__)
 def build_playback_report(url) -> None:
     """Serialize the request data to json for offline debugging.
     
-    :param YouTube youtube:
-        A YouTube object.
+    :param url:
+        A url object.
     """
-    ts = int(dt.datetime.now(dt.timezone.utc).timestamp())
-    fp = os.path.join(os.getcwd(), f"yt-video-{youtube.video_id}-{ts}.json.gz")
+    yt = YouTube(url)
 
-    js = youtube.js
-    watch_html = youtube.watch_html
-    vid_info = youtube.vid_info
+    ts = int(dt.datetime.now(dt.timezone.utc).timestamp())
+    fp = os.path.join(os.getcwd(), f"yt-video-{yt.video_id}-{ts}.json.gz")
+
+    js = yt.js
+    watch_html = yt.watch_html
+    vid_info = yt.vid_info
 
     with gzip.open(fp, "wb") as fh:
         fh.write(
             json.dumps(
                 {
-                    "url": youtube.watch_url,
+                    "url": yt.watch_url,
                     "js": js,
                     "watch_html": watch_html,
                     "video_info": vid_info,
@@ -114,34 +115,37 @@ def ffmpeg_process(url, resolution: str, target: Optional[str] = None) -> None:
     """
     Decides the correct video stream to download, then calls _ffmpeg_downloader.
 
-    :param YouTube youtube:
+    :param url:
         A valid YouTube object.
     :param str resolution:
         YouTube video resolution.
     :param str target:
         Target directory for download
     """
-    youtube.register_on_progress_callback(on_progress)
+
+    yt = YouTube(url)
+
+    yt.register_on_progress_callback(on_progress)
     target = target or os.getcwd()
 
     if resolution == None or resolution == "best":
-        highest_quality_stream = youtube.streams.filter(progressive=False).order_by("resolution").last()
-        mp4_stream = youtube.streams.filter(progressive=False, subtype="mp4").order_by("resolution").last()
+        highest_quality_stream = yt.streams.filter(progressive=False).order_by("resolution").last()
+        mp4_stream = yt.streams.filter(progressive=False, subtype="mp4").order_by("resolution").last()
         if highest_quality_stream.resolution == mp4_stream.resolution:
             video_stream = mp4_stream
         else:
             video_stream = highest_quality_stream
     else:
-        video_stream = youtube.streams.filter(progressive=False, resolution=resolution).first()
+        video_stream = yt.streams.filter(progressive=False, resolution=resolution).first()
 
     if not video_stream:
         print(f"No streams found for resolution {resolution}")
         return
 
-    audio_stream = youtube.streams.filter(progressive=False).order_by("abr").last()
+    audio_stream = yt.streams.filter(progressive=False).order_by("abr").last()
 
-    video_file_name = _unique_name(youtube.title, "mp4", "video", target)
-    audio_file_name = _unique_name(youtube.title, "mp4", "audio", target)
+    video_file_name = _unique_name(yt.title, "mp4", "video", target)
+    audio_file_name = _unique_name(yt.title, "mp4", "audio", target)
 
     video_path = video_stream.get_file_path(filename=video_file_name, output_path=target)
     audio_path = audio_stream.get_file_path(filename=audio_file_name, output_path=target)
@@ -154,7 +158,7 @@ def ffmpeg_process(url, resolution: str, target: Optional[str] = None) -> None:
     _download(audio_stream, target=target, filename=audio_file_name)
 
     # Construct the command to run ffmpeg
-    command = ["ffmpeg", "-i", video_path, "-i", audio_path, "-c:v", "copy", "-c:a", "aac", "-strict", "experimental", f"{target}/{youtube.title}.mp4"]
+    command = ["ffmpeg", "-i", video_path, "-i", audio_path, "-c:v", "copy", "-c:a", "aac", "-strict", "experimental", f"{target}/{yt.title}.mp4"]
 
     # Execute the command
     subprocess.run(command)
@@ -170,26 +174,12 @@ def download_by_resolution(url, resolution: str, target: Optional[str] = None) -
         The target directory for the download.
     """
     print(f"Downloading {resolution}...")
-    stream = youtube.streams.filter(resolution=resolution).first()
+
+    yt = YouTube(url)
+
+    stream = yt.streams.filter(resolution=resolution).first()
     if stream is None:
         print(f"No stream found for resolution {resolution}")
-    else:
-        _download(stream, target)
-
-def download_audio(url, filetype: Optional[str] = "mp4", target: Optional[str] = None) -> None:
-    """Download audio stream of a YouTube video.
-
-    :param YouTube youtube:
-        A valid YouTube object.
-    :param Optional[str] filetype:
-        The filetype for the audio. Defaults to "mp4".
-    :param Optional[str] target:
-        The target directory for the download.
-    """
-    print("Downloading audio...")
-    stream = youtube.streams.filter(progressive=False, subtype=filetype).order_by("abr").last()
-    if stream is None:
-        print(f"No audio stream found for filetype {filetype}")
     else:
         _download(stream, target)
 
@@ -204,7 +194,10 @@ def download_highest_resolution_progressive(url, resolution: str, target: Option
         The target directory for the download.
     """
     print("Downloading highest resolution progressive stream...")
-    stream = youtube.streams.filter(progressive=True).order_by("resolution").last()
+
+    yt = YouTube(url)
+
+    stream = yt.streams.filter(progressive=True).order_by("resolution").last()
     if stream is None:
         print("No progressive stream found.")
     else:
@@ -213,14 +206,17 @@ def download_highest_resolution_progressive(url, resolution: str, target: Option
 def download_by_itag(url, itag: int, target: Optional[str] = None) -> None:
     """Download a YouTube stream by its itag.
 
-    :param YouTube youtube:
+    :param url:
         A valid YouTube object.
     :param int itag:
         The itag of the desired stream.
     :param Optional[str] target:
         The target directory for the download.
     """
-    stream = youtube.streams.get_by_itag(itag)
+
+    yt = YouTube(url)
+
+    stream = yt.streams.get_by_itag(itag)
     if stream is None:
         print(f"No stream found with itag {itag}.")
     else:
@@ -230,7 +226,7 @@ def download_by_itag(url, itag: int, target: Optional[str] = None) -> None:
 def download_caption(url, lang_code: str, target: Optional[str] = None) -> None:
     """Download captions for a given YouTube video.
 
-    :param YouTube youtube:
+    :param url:
         A valid YouTube object.
     :param str lang_code:
         The language code for the desired captions.
@@ -238,13 +234,16 @@ def download_caption(url, lang_code: str, target: Optional[str] = None) -> None:
         The target directory for the downloaded captions.
     """
     print(f"Downloading captions for language: {lang_code}...")
-    caption = youtube.captions.get_by_language_code(lang_code)
+
+    yt = YouTube(url)
+
+    caption = yt.captions.get_by_language_code(lang_code)
     if caption is None:
         print(f"No captions found for language code: {lang_code}.")
     else:
         caption.download(target)
 
-def _print_available_captions(captions: List[CaptionQuery]) -> None:
+def available_captions(captions: List[CaptionQuery]) -> None:
     """Print available captions for a YouTube video.
 
     :param List[CaptionQuery] captions:
@@ -257,18 +256,37 @@ def _print_available_captions(captions: List[CaptionQuery]) -> None:
 def display_streams(url) -> None:
     """Display available streams for the given YouTube video.
 
-    :param YouTube youtube:
+    :param url:
         A valid YouTube object.
     """
-    print(f"Available streams for {youtube.title}:")
-    for stream in youtube.streams:
+
+    yt = YouTube(url)
+
+    print(f"Available streams for {yt.title}:")
+    for stream in yt.streams:
         print(f" - {stream}")
 
+def download_video(url):
+    yt = YouTube(url, on_progress_callback=on_progress)
+    print(yt.title)
 
-def _parse_args(parser: argparse.ArgumentParser, args: Optional[List] = None) -> argparse.Namespace:
-    parser.add_argument("url", help="The YouTube /watch or /playlist url", nargs="?")
+    ys = yt.streams.get_highest_resolution()
+    ys.download()
+
+def download_audio(url):
+    yt = YouTube(url, on_progress_callback=on_progress)
+    print(yt.title)
+
+    ys = yt.streams.get_audio_only()
+    ys.download()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=main.__doc__)
+
+    parser.add_argument("-u","--url", required=True, help="The YouTube /watch or /playlist url", nargs="?")
     parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
-    parser.add_argument("--itag", type=int, help="The itag for the desired stream")
+    parser.add_argument("--itag", type=int, required=True, help="The itag for the desired stream")
     parser.add_argument("-r", "--resolution", type=str, help="The resolution for the desired stream")
     parser.add_argument("-l", "--list", action="store_true", help="The list option causes pytubefix cli to return a list of streams available to download")
     parser.add_argument("--oauth", action="store_true", help="use oauth token")
@@ -277,15 +295,23 @@ def _parse_args(parser: argparse.ArgumentParser, args: Optional[List] = None) ->
     parser.add_argument("--build-playback-report", action="store_true", help="Save the html and js to disk")
     parser.add_argument("-c", "--caption-code", type=str, help="Download srt captions for given language code. Prints available language codes if no argument given")
     parser.add_argument('-lc', '--list-captions', action='store_true', help="List available caption codes for a video")
-    parser.add_argument("-t", "--target", help="The output directory for the downloaded stream. Default is current working directory")
-    parser.add_argument("-a", "--audio", const="mp4", nargs="?", help="Download the audio for a given URL at the highest bitrate available. Defaults to mp4 format if none is specified")
+    #parser.add_argument("-t", "--target", help="The output directory for the downloaded stream. Default is current working directory")
+    parser.add_argument("-a", "--audio", action="store_true", nargs="?", help="Download the audio for a given URL at the highest bitrate available. Defaults to mp4 format if none is specified")
     parser.add_argument("-f", "--ffmpeg", const="best", nargs="?", help="Downloads the audio and video stream for resolution provided. If no resolution is provided, downloads the best resolution. Runs the command line program ffmpeg to combine the audio and video")
 
-    return parser.parse_args(args)
+    args = parser.parse_args()
 
+    if args.u:
+        if args.a:
+            download_audio(args.u)
+        download_video(args.u)
 
-def main():
-    pass
+    if args.c:
+        pass
+
+    if args.lc:
+        pass
+
 
 if __name__ == "__main__":
     main()
